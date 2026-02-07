@@ -1,0 +1,19 @@
+import { IsArray, IsNumber, IsString } from 'class-validator';
+
+export class CreateOrderItemDto {
+  @IsString()
+  productId: string;
+
+  @IsNumber()
+  quantity: number;
+}
+
+export class CreateOrderDto {
+  @IsArray()
+  items: CreateOrderItemDto[];
+}
+
+export class CheckoutCartDto {
+  @IsString()
+  cartId: string;
+}
