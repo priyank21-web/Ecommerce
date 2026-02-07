@@ -15,7 +15,7 @@ export class OrdersService {
       where: { tenantId, id: { in: dto.items.map((item) => item.productId) } },
     });
     const items = dto.items.map((item) => {
-      const product = products.find((p) => p.id === item.productId);
+      const product = products.find((p: typeof products[number]) => p.id === item.productId);
       return {
         productId: item.productId,
         quantity: item.quantity,
