@@ -1,0 +1,290 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  TENANT_ADMIN
+  SUPER_ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users              User[]
+  products           Product[]
+  categories         Category[]
+  outcomes           Outcome[]
+  questions          Question[]
+  customizations     Customization[]
+  orders             Order[]
+  payments           Payment[]
+  campaigns          Campaign[]
+  ads                Ad[]
+  conversions        Conversion[]
+  analyticsEvents    AnalyticsEvent[]
+  feedback           Feedback[]
+  dynamicPricingRule DynamicPricingRule[]
+}
+
+model User {
+  id           String    @id @default(uuid())
+  tenantId     String
+  email        String    @unique
+  passwordHash String
+  role         UserRole
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  orders Order[]
+  customizations Customization[]
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  products Product[]
+
+  @@index([tenantId])
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  description String
+  price       Float
+  tags        String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  category Category? @relation(fields: [categoryId], references: [id])
+  categoryId String?
+  orderItems OrderItem[]
+
+  @@index([tenantId])
+}
+
+model Outcome {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant         Tenant         @relation(fields: [tenantId], references: [id])
+  questions      Question[]
+  customizations Customization[]
+  pricingRules   DynamicPricingRule[]
+
+  @@index([tenantId])
+}
+
+model Question {
+  id        String   @id @default(uuid())
+  tenantId  String
+  outcomeId String
+  prompt    String
+  type      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  outcome Outcome @relation(fields: [outcomeId], references: [id])
+  answers Answer[]
+
+  @@index([tenantId, outcomeId])
+}
+
+model Answer {
+  id          String   @id @default(uuid())
+  tenantId    String
+  questionId  String
+  value       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  question Question @relation(fields: [questionId], references: [id])
+
+  @@index([tenantId, questionId])
+}
+
+model Customization {
+  id              String   @id @default(uuid())
+  tenantId        String
+  userId          String
+  outcomeId       String
+  answers         Json
+  generatedBundle Json
+  totalPrice      Float
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+  outcome Outcome @relation(fields: [outcomeId], references: [id])
+
+  @@index([tenantId, userId])
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  tenantId    String
+  userId      String
+  status      OrderStatus
+  totalAmount Float
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  tenant Tenant   @relation(fields: [tenantId], references: [id])
+  user   User     @relation(fields: [userId], references: [id])
+  items  OrderItem[]
+  payment Payment?
+
+  @@index([tenantId, userId])
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  unitPrice Float
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id               String        @id @default(uuid())
+  tenantId         String
+  orderId          String
+  provider         String
+  providerReference String
+  amount           Float
+  status           PaymentStatus
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  order  Order  @relation(fields: [orderId], references: [id])
+
+  @@index([tenantId, orderId])
+}
+
+model Campaign {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  source    String
+  medium    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  ads    Ad[]
+
+  @@index([tenantId])
+}
+
+model Ad {
+  id          String   @id @default(uuid())
+  tenantId    String
+  campaignId  String
+  name        String
+  platform    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  conversions Conversion[]
+
+  @@index([tenantId, campaignId])
+}
+
+model Conversion {
+  id        String   @id @default(uuid())
+  tenantId  String
+  adId      String
+  orderId   String
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  ad     Ad     @relation(fields: [adId], references: [id])
+  order  Order  @relation(fields: [orderId], references: [id])
+
+  @@index([tenantId, adId])
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(uuid())
+  tenantId  String
+  type      String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, userId])
+}
+
+model DynamicPricingRule {
+  id        String   @id @default(uuid())
+  tenantId  String
+  outcomeId String
+  basePrice Float
+  rules     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  outcome Outcome @relation(fields: [outcomeId], references: [id])
+
+  @@index([tenantId, outcomeId])
+}
