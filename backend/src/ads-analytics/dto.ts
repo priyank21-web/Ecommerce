@@ -2,8 +2,8 @@ import { IsObject, IsString } from 'class-validator';
 
 export class TrackEventDto {
   @IsString()
-  type: string;
+  type!: string;
 
   @IsObject()
-  payload: Record<string, unknown>;
+  payload!: Record<string, unknown>;
 }

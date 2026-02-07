@@ -2,18 +2,13 @@ import { IsArray, IsNumber, IsString } from 'class-validator';
 
 export class CreateOrderItemDto {
   @IsString()
-  productId: string;
+  productId: string = '';
 
   @IsNumber()
-  quantity: number;
+  quantity: number = 0;
 }
 
 export class CreateOrderDto {
   @IsArray()
-  items: CreateOrderItemDto[];
-}
-
-export class CheckoutCartDto {
-  @IsString()
-  cartId: string;
+  items: CreateOrderItemDto[] = [];
 }
